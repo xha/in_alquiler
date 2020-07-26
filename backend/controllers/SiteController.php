@@ -483,4 +483,36 @@ class SiteController extends Controller
         //$pendientes = $comand->readAll();
         echo Json::encode($pendientes);
     }
+
+    public function actionBuscaCuentas($codigo) {
+        $connection = \Yii::$app->db;
+        
+        $query = "SELECT NoCuenta FROM SBBANC 
+            WHERE NoCuenta like '%".$codigo."%'
+            ORDER BY NoCuenta";
+
+        $pendientes = $connection->createCommand($query)->queryAll();
+        //$pendientes = $comand->readAll();
+        echo Json::encode($pendientes);
+    }
+
+    function actionBuscaDatos($fecha_desde,$fecha_hasta,$codvend = "") {
+        $connection = \Yii::$app->db;
+        $extra = "";
+        if ($codvend!="") $extra = " and f.CodVend='".$codvend."'";
+        $arr1 = explode("/",$fecha_desde);
+        $arr2 = explode("/",$fecha_hasta);
+        $fecha_desde = $arr1[2].$arr1[1].$arr1[0]. " 00:00:00";
+        $fecha_hasta = $arr2[2].$arr2[1].$arr2[0]. " 23:59:00";
+        $falsos = "";
+        $correos_errados = "";
+        $contador = 0;
+        
+        $query = "SELECT *,i.Email,CONVERT(VARCHAR(10), f.FechaE, 105) as Fecha_Despacho,f.CodVend as Vendedor
+                from SAFACT f, SACLIE i WHERE f.TipoFac='F' and i.CodClie=f.CodClie and f.FechaE Between '$fecha_desde' and '$fecha_hasta' $extra
+                and F.NumeroD Not in (select NumeroD From ISAL_CorreosProcesados WHERE fecha between '$fecha_desde' and '$fecha_hasta')";
+        $safact = $connection->createCommand($query)->queryAll();
+        
+        echo Json::encode($safact);
+    }   
 }

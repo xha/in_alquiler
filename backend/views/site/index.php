@@ -76,22 +76,90 @@ if (Yii::$app->user->isGuest) {
             <?= $form->field($model, 'asunto')->textInput(['maxlength' => true])->label(false); ?>
         </div>
     </div>
-    <div class="row">
-        <div class="col-sm-4">
+    <div class="row my-2">
+        <div class="col-sm-3">
             <button class="btn btn-success" type="submit">
                 <i class="fa fa-cogs"></i>
                 Procesar envío de correo
             </button>
         </div>
+        <div class="col-sm-3">
+            <label class="btn btn-primary" onclick="buscar_datos()">
+                <i class="fa fa-search"></i>
+                Vista Previa
+            </label>
+        </div>
+        <div class="col-sm-5"></div>
+        <div class="col-sm-1">
+            <img id='img_busqueda' style='visibility: hidden' src='../../../img/preloader.gif' />
+        </div>
     </div>
     <?php ActiveForm::end(); ?>
     <div id="mensaje" class="text-danger"><?php print_r($mensaje) ?></div>
+    <br />
+    <div class="table-responsive mt-2" id="div_table" style="visibility: hidden">
+        <table class="table" width="100%">
+            <thead class="bg-primary">
+                <tr>
+                    <th>#</th>
+                    <th>Factura</th>
+                    <th>Rif</th>
+                    <th>Cliente</th>
+                    <th>Correo</th>
+                    <th>Info</th>
+                    <th>Fecha</th>
+                    <th>Ubicación</th>
+                    <th>Concepto</th>
+                    <th>Total</th>
+                </tr>
+            </thead>
+            <tbody id="tabla"></tbody>
+        </table>
+    </div>
 </body>
 </html>
 <script type="text/javascript">
 	$(function () {
 		$(".fecha").inputmask('99/99/9999', { numericInput: true });
 	});
+
+    function buscar_datos() {
+        let fecha_desde = $("#site-fecha_desde").val();
+        let fecha_hasta = $("#site-fecha_hasta").val();
+        let codvend = $("#site-codvend").val();
+        let img = $('#img_busqueda')[0];
+        let div_table = $('#div_table')[0];
+        let tabla = $("#tabla")[0];
+        tabla.innerHTML = "";
+
+        div_table.style.visibility = "visible";
+        img.style.visibility = "visible";
+        if ((fecha_desde!="") && (fecha_hasta)) {
+            $.getJSON('site/busca-datos',{fecha_desde : fecha_desde, fecha_hasta : fecha_hasta, codvend : codvend},function(data){
+                var campos = Array();
+                if (data!="") {
+                    for (i = 0; i < data.length; i++) {
+                        campos.length = 0;
+                        campos.push(i+1);
+                        campos.push(data[i].NumeroD);
+                        campos.push(data[i].CodClie);
+                        campos.push(data[i].Descrip);
+                        if (data[i].Email==null) data[i].Email="";
+                        campos.push(data[i].Email);
+                        if (data[i].Notas2==null) data[i].Notas2="";
+                        campos.push(data[i].Notas2);
+                        campos.push(data[i].Fecha_Despacho);
+                        campos.push(data[i].Vendedor);
+                        if (data[i].Notas1==null) data[i].Notas1="";
+                        campos.push(data[i].Notas1);
+                        campos.push(parseFloat(data[i].MtoTotal));
+                        tabla.appendChild(add_filas(campos, 'td','','',9));
+                    }
+                }
+                img.style.visibility = "hidden";
+            });
+        }        
+    }
 </script>
 <?php 
     };
