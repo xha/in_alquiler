@@ -1,0 +1,27 @@
+{
+  "name": "integready/yii2-fpdf",
+  "description": "Includes FPDF in Yii2",
+  "type": "yii2-extension",
+  "keywords": [
+    "yii2",
+    "extension"
+  ],
+  "homepage": "https://github.com/IntegReady/yii2-fpdf",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "IntegReady"
+    }
+  ],
+  "require": {
+    "yiisoft/yii2": "*"
+  },
+  "require-dev": {
+    "yiisoft/yii2-coding-standards": "*"
+  },
+  "autoload": {
+    "psr-4": {
+      "integready\\pdf\\": ""
+    }
+  }
+}
