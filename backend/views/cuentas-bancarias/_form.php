@@ -57,13 +57,15 @@ use kartik\select2\Select2;
 <script type="text/javascript">
     function buscar_cuenta() {
         $("#cuentasbancarias-nro_cuenta").empty();
+        var newOption = new Option("Seleccione", "", false, false);
+        $('#cuentasbancarias-nro_cuenta').append(newOption);    
         let banco = $("#cuentasbancarias-id_banco")[0];
         let arreglo = banco.options[banco.selectedIndex].text.split(" - ");
 
         $.getJSON('../site/busca-cuentas',{codigo : arreglo[0]},function(datos){
             if (datos.length > 0) {
                 for (var i=0; i < datos.length; i++) {
-                    var newOption = new Option(datos[i].NoCuenta, datos[i].NoCuenta, false, false);
+                    newOption = new Option(datos[i].NoCuenta+" - "+datos[i].Descripcion, datos[i].NoCuenta, false, false);
                     $('#cuentasbancarias-nro_cuenta').append(newOption).trigger('change');    
                 }
                 

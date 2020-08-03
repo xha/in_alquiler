@@ -23,6 +23,11 @@
                                     ['label' => 'Cuentas Bancarias', 'icon' => 'check', 'url' => ['../../backend/web/cuentas-bancarias']],
                             ],];
             $menuItems[] = ['label' => 'Enviar correo', 'icon' => 'envelope', 'url' => ['../../backend/web/site/']];
+            $menuItems[] = ['label' => 'Reporte', 'icon' => 'file', 'url' => '#',
+                                'items' => [
+                                    ['label' => 'Avisos de cobro enviados', 'icon' => 'check', 'url' => ['../../backend/web/site/reporte-enviados']],
+                                    ['label' => 'Clientes sin correo', 'icon' => 'check', 'url' => ['../../backend/web/site/reporte-correos']],
+                            ],];
         }
     ?>
         <?= dmstr\widgets\Menu::widget(

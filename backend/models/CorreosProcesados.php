@@ -52,6 +52,8 @@ class CorreosProcesados extends \yii\db\ActiveRecord
             'NumeroD' => 'Numero D',
             'correo' => 'Correo',
             'CodClie' => 'Cod Clie',
+            'observacion'=> 'Observación',
+            'CodVend' => 'Vendedor',
         ];
     }
 }

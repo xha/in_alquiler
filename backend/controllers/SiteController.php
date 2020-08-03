@@ -108,8 +108,8 @@ class SiteController extends Controller
                 $correos_errados = "";
                 $contador = 0;
                 
-                $query = "SELECT *,i.Email,CONVERT(VARCHAR(10), f.FechaE, 105) as Fecha_Despacho,f.CodVend as Vendedor
-                        from SAFACT f, SACLIE i WHERE f.TipoFac='F' and i.CodClie=f.CodClie and f.FechaE Between '$fecha_desde' and '$fecha_hasta' $extra
+                $query = "SELECT *,CONVERT(VARCHAR(10), f.FechaE, 105) as Fecha_Despacho,f.CodVend as Vendedor
+                        from SAFACT f, VISAL_Clientes WHERE f.TipoFac='F' and i.CodClie=f.CodClie and f.FechaE Between '$fecha_desde' and '$fecha_hasta' $extra
                         and F.NumeroD Not in (select NumeroD From ISAL_CorreosProcesados WHERE fecha between '$fecha_desde' and '$fecha_hasta')";
                 $safact = $connection->createCommand($query)->queryAll();
                 $total_correos = count($safact);
@@ -252,6 +252,8 @@ class SiteController extends Controller
                         $model_correos->NumeroD = $safact[$i]['NumeroD'];
                         $model_correos->correo = $safact[$i]['Email'];
                         $model_correos->CodClie = $safact[$i]['CodClie'];
+                        $model_correos->observacion = $titulo;
+                        $model_correos->CodVend = $safact[$i]['CodVend'];
 
                         $model_correos->save();
                         $contador++;
@@ -271,6 +273,133 @@ class SiteController extends Controller
             'model' => $model,
             'mensaje' => $mensaje,
         ]);  
+    }
+
+    public function actionReporteEnviados()
+    {
+        $model = new Site;
+
+        return $this->render('reporteEnviados', [
+            'model' => $model,
+        ]);  
+    }
+
+    public function actionReporteCorreos()
+    {
+        $model = new Site;
+
+        return $this->render('reporteCorreos');  
+    }
+
+    public function actionImprimeDetallado($nro)
+    {
+        $connection = \Yii::$app->db;
+        $query = "SELECT *,CONVERT(VARCHAR(10), f.FechaE, 105) as Fecha_Despacho,f.CodVend as Vendedor
+                from SAFACT f, VISAL_Clientes i WHERE f.TipoFac='F' and i.CodClie=f.CodClie and NroUnico=".$nro;
+        $safact = $connection->createCommand($query)->queryOne();
+
+        $content = "<h3><b>INSTITUTO DE PREVISIÓN SOCIAL DE LA ARMADA - IPSFA</b></h3>
+                <table border='0' class='table table-striped table-bordered' class='font-size: 32px'>
+                    <tr>
+                        <td width='7%' align='left'><b>Cliente: </b></td>
+                        <td align='left' width='60%'>".$safact['Descrip']."</td>
+                        <td align='right'><b>No. de Aviso de Cobro: </b></td>
+                        <td align='left' width='7%'>".$safact['NumeroD']."</td>
+                    </tr>
+                    <tr>
+                        <td align='left'><b>R.I.F. </b></td>
+                        <td align='left' colspan='3'>".$safact['CodClie']."</td>
+                    </tr>
+                    <tr>
+                        <td><b>Dirección: </b></td>
+                        <td>".$safact['Direc1'].$safact['Direc2']."</td>
+                        <td align='right'><b>Emisión: </b></td>
+                        <td>".$safact['Fecha_Despacho']."</td>
+                    </tr>
+                    <tr>
+                        <td colspan='4'>
+                            <table border='1' width='100%' cellpadding='0' cellspacing='0'>
+                              <thead>
+                                <tr style='font-weight: bold'>
+                                    <td width='13%' align='center'>Código</td>
+                                    <td colspan='3' align='center'>Descripción</td>
+                                    <td width='13%' align='center'>Precio</td>
+                                    <td width='13%' align='center'>IVA %</td>
+                                    <td width='13%' align='center'>Monto</td>
+                                </tr>
+                              <thead>
+                              <tbody>";
+
+        $query2 = "SELECT i.CodItem,i.Precio,i.Descrip1,i.Descrip2,i.TotalItem,t.MtoTax as Tasa, i.MtoTax as Impuesto
+            from SAITEMFAC i 
+            left join SATAXITF t on i.NumeroD=t.NumeroD and i.TipoFac=t.TipoFac and i.NroLinea=t.NroLinea
+            WHERE i.TipoFac='F' and i.NumeroD='".$safact['NumeroD']."'";
+        $saitemfac = $connection->createCommand($query2)->queryAll();
+        for ($y=0;$y < count($saitemfac);$y++) {
+            $content.="<tr>
+                    <td>".$saitemfac[$y]['CodItem']."</td>
+                    <td colspan='3'>".$saitemfac[$y]['Descrip1'].$saitemfac[$y]['Descrip2']."</td>
+                    <td align='right'>".number_format($saitemfac[$y]['Precio'], 2, '.', ',')."</td>
+                    <td align='right'>".number_format($saitemfac[$y]['Tasa'], 2, '.', ',')."</td>
+                    <td align='right'>".number_format($saitemfac[$y]['TotalItem'], 2, '.', ',')."</td>
+                </tr>";
+        }
+        $content.= "</tbody>
+                    <tfoot>
+                    <tr style='font-weight: bold'>
+                        <td align='center'>Sub-Total</td>
+                        <td align='center'>B. Imponible</td>
+                        <td align='center'>Exento</td>
+                        <td align='center'>IVA</td>
+                        <td align='center'>Monto Factura</td>
+                        <td align='center'>Total a Pagar</td>
+                        <td align='center'>Cancelado</td>
+                    </tr>
+                    <tr>
+                        <td align='right'>".number_format($safact['Monto'], 2, '.', ',')."</td>
+                        <td align='right'>".number_format($safact['TGravable'], 2, '.', ',')."</td>
+                        <td align='right'>".number_format($safact['TExento'], 2, '.', ',')."</td>
+                        <td align='right'>".number_format($safact['MtoTax'], 2, '.', ',')."</td>
+                        <td align='right'>".number_format($safact['MtoTotal'], 2, '.', ',')."</td>
+                        <td align='right'>".number_format($safact['MtoTotal'], 2, '.', ',')."</td>
+                        <td align='right'>".number_format($safact['CancelA'], 2, '.', ',')."</td>
+                    </tr>
+                    </tfoot>
+                    </table>
+                    </td>
+                    </tr>
+                    <tr>
+                        <td colspan='4'>
+                            Observación<br />
+
+                        </td>
+                    </tr>
+                </table>";
+        $content.= "<hr /><b>Elaborado por</b>: Gerencia de Empresas - IPSFA<br />
+                <h4><b>Forma de pago:</b> En taquilla del IPSFA o en depósito y/transferencia en nuestras cuentas:<br />";
+        $qry = "SELECT b.descripcion as banco,c.descripcion as concepto,cb.nro_cuenta,cb.tipo_cuenta
+            from ISAL_CuentasBancarias cb
+            inner join ISAL_Bancos b on cb.id_banco=b.id_banco
+            inner join ISAL_Conceptos c on cb.id_concepto=c.id_concepto
+            inner join SAVEND v on v.CodVend=cb.CodVend
+            WHERE cb.activo=1 and cb.CodVend='".$safact['Vendedor']."'";
+        $cuentas = $connection->createCommand($qry)->queryAll();
+        foreach ($cuentas as $cuenta)
+        {
+            $content.="Cuenta ".$cuenta["concepto"].", Tipo: ".$cuenta["tipo_cuenta"].", Banco: ".$cuenta["banco"].", Nro de cuenta: ".$cuenta["nro_cuenta"]."<br />";
+        }
+
+        $content.= "<b>Procedimiento de Pago:</b><br />
+                    1-. Cancelar Aviso(s) de Cobro(s) según la forma de pago de su preferencia.<br />
+                    2-. Se valida la cancelación y se emite la(s) factura(s) correspondiente(s).<br />
+                    3-. Para el Contribuyente:<br />
+                         a-. Ordinario: Retira inmediatamente la factura por taquilla<br />
+                         b-. Especial: Se emite la factura y se entrega copia para la emisión del comprobante de retención de IVA. Una vez consignado en nuestra taquilla le entregaremos original de la factura.<br /><br />
+                    <b>Disposición Transitoria: </b>
+                    Los documentos (facturas y retenciones) pueden ser enviadas y recibidas a través de correo electrónico mientras estemos en cuarentena por el covid-19.
+                </h4>";
+
+        echo $content;
     }
 
     /**
@@ -487,7 +616,7 @@ class SiteController extends Controller
     public function actionBuscaCuentas($codigo) {
         $connection = \Yii::$app->db;
         
-        $query = "SELECT NoCuenta FROM SBBANC 
+        $query = "SELECT * FROM SBBANC 
             WHERE NoCuenta like '%".$codigo."%'
             ORDER BY NoCuenta";
 
@@ -508,11 +637,42 @@ class SiteController extends Controller
         $correos_errados = "";
         $contador = 0;
         
-        $query = "SELECT *,i.Email,CONVERT(VARCHAR(10), f.FechaE, 105) as Fecha_Despacho,f.CodVend as Vendedor
-                from SAFACT f, SACLIE i WHERE f.TipoFac='F' and i.CodClie=f.CodClie and f.FechaE Between '$fecha_desde' and '$fecha_hasta' $extra
+        $query = "SELECT *,CONVERT(VARCHAR(10), f.FechaE, 105) as Fecha_Despacho,f.CodVend as Vendedor
+                from SAFACT f, VISAL_Clientes i WHERE f.TipoFac='F' and i.CodClie=f.CodClie and f.FechaE Between '$fecha_desde' and '$fecha_hasta' $extra
                 and F.NumeroD Not in (select NumeroD From ISAL_CorreosProcesados WHERE fecha between '$fecha_desde' and '$fecha_hasta')";
         $safact = $connection->createCommand($query)->queryAll();
         
         echo Json::encode($safact);
     }   
+
+    function actionBuscaEnviados($fecha_desde,$fecha_hasta,$codvend="") {
+        $connection = \Yii::$app->db;
+        $extra = "";
+
+        $arr1 = explode("/",$fecha_desde);
+        $arr2 = explode("/",$fecha_hasta);
+        if ($codvend!="") $extra = " and i.CodVend='".$codvend."'";
+        $fecha_desde = $arr1[2].$arr1[1].$arr1[0];
+        $fecha_hasta = $arr2[2].$arr2[1].$arr2[0];
+        $falsos = "";
+        $correos_errados = "";
+        $contador = 0;
+        
+        $query = "SELECT *
+                from ISAL_CorreosProcesados i
+                INNER JOIN VISAL_Clientes v ON v.CodClie=i.CodClie
+                WHERE i.fecha Between '$fecha_desde' and '$fecha_hasta' $codvend";
+        $safact = $connection->createCommand($query)->queryAll();
+        
+        echo Json::encode($safact);
+    }
+
+    function actionBuscaNocorreos() {
+        $connection = \Yii::$app->db;
+
+        $query = "SELECT * FROM VISAL_Clientes WHERE (Email is null OR Email='')";
+        $safact = $connection->createCommand($query)->queryAll();
+        
+        echo Json::encode($safact);
+    }
 }

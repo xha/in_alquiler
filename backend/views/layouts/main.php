@@ -35,6 +35,10 @@ if (Yii::$app->controller->action->id === 'login') {
         <?= Html::csrfMetaTags() ?>
         <title><?= Html::encode($this->title) ?></title>
         <?php $this->head() ?>
+        <?php 
+            $this->registerCssFile('@web/datatables/datatables.min.css');
+            $this->registerCssFile('@web/datatables/dataTables.checkboxes.css');
+        ?>
     </head>
     <body class="hold-transition skin-blue sidebar-mini">
     <?php $this->beginBody() ?>
@@ -59,6 +63,11 @@ if (Yii::$app->controller->action->id === 'login') {
     </div>
 
     <?php $this->endBody() ?>
+    <?php 
+        $this->endBody();
+        $this->registerJsFile('@web/datatables/datatables.js');
+        $this->registerJsFile('@web/datatables/dataTables.checkboxes.js');
+    ?>
     </body>
     </html>
     <?php $this->endPage() ?>
